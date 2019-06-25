@@ -7,6 +7,7 @@
 #include <forward_list>
 #include <algorithm>
 #include <utility>
+#include <optional>
 
 namespace griha {
 
@@ -28,20 +29,18 @@ private:
 
     struct iterator_impl {
 
-        using difference_type = void;
-        using value_type = std::pair<std::string, std::string>;
-        using reference_type = const value_type&;
-        using pointer_type = const value_type*;
+        using value_type = std::pair<const std::string, const std::string>;
 
         const nodes_type& top_nodes;
         std::forward_list<typename nodes_type::const_iterator> path;
+        mutable std::optional<value_type> value;
 
-        explicit iterator_impl(const nodes_type& tn, typename nodes_type::const_iterator it)
+        iterator_impl(const nodes_type& tn, typename nodes_type::const_iterator it)
             : top_nodes(tn) {
             path.push_front(it);
         }
 
-        void go_down_at_left() {
+        void lookup_end_at_left() {
             assert(!path.empty());
             assert(path.front() != top_nodes.end());
 
@@ -51,10 +50,10 @@ private:
             }
             assert(!n.childs.empty());
             path.push_front(n.childs.begin());
-            go_down_at_left();
+            lookup_end_at_left();
         }
 
-        void go_down_at_right() {
+        void lookup_end_at_right() {
             assert(!path.empty());
             assert(path.front() != top_nodes.end());
 
@@ -64,7 +63,7 @@ private:
             }
             assert(!n.childs.empty());
             path.push_front(std::prev(n.childs.end()));
-            go_down_at_right();
+            lookup_end_at_right();
         }
 
         void next() {
@@ -75,11 +74,13 @@ private:
                 return;
             }
 
+            // find next element fits for end lookup procedure
             if (it->second.childs.empty()) {
                 // go right or go up and right
                 path.pop_front();
                 for (++it; 
                      it != top_nodes.end() &&
+                        !path.empty() &&
                         it == path.front()->second.childs.end();
                      ++it) {
                     it = path.front();
@@ -93,15 +94,22 @@ private:
                 // go down
                 path.push_front(it->second.childs.begin());
             }
-            go_down_at_left();
+            // do lookup
+            lookup_end_at_left();
         }
 
         void prev() {
             assert(!path.empty());
-            assert(!top_nodes.empty());
+            
+            if (top_nodes.empty()) {
+                return;
+            }
 
+            // find next element fits for end lookup procedure
             auto it = path.front();
-            if (it->second.childs.empty()) {
+            if (it == top_nodes.end()) {
+                --it;
+            } else if (it->second.childs.empty()) {
                 // go left or go up and left
                 // if achieved begin of 
                 path.pop_front();
@@ -118,9 +126,99 @@ private:
                 // go down
                 path.push_front(std::prev(it->second.childs.end()));
             }
-            go_down_at_right();
+            // do lookup
+            lookup_end_at_right();
+        }
+
+        void clear_value() {
+            value.reset();
+        }
+
+        value_type& get_value() const {
+            assert(!path.empty());
+
+            if (path.front() == top_nodes.end()) {
+                throw std::runtime_error("invalid iterator");
+            }
+            
+            if (!value) {
+                std::string prefix;
+                for (auto it = path.begin(); it != path.end(); ++it) {
+                    if (!it->end_flag) {
+                        prefix += it->label;
+                        continue;
+                    }
+
+                    assert(!it->label.empty());
+                    value = std::make_pair(prefix + it->label, prefix + it->label[0]);
+                    break;
+                }
+            }
+            return value.value();
         }
     };
+
+public:
+    class iterator : iterator_impl {
+
+        friend class radix_tree;
+
+    public:
+        using iterator_category = std::bidirectional_iterator_tag;
+        using difference_type = ptrdiff_t;
+        using typename iterator_impl::value_type;
+        using reference_type = const value_type&;
+        using pointer_type = const value_type*;
+
+    public:
+        iterator& operator++ () {
+            iterator_impl::next();
+            iterator_impl::clear_value();
+        }
+
+        iterator operator++ (int) {
+            iterator ret(*this);
+            ++(*this);
+            return ret;
+        }
+
+        iterator& operator-- () {
+            iterator_impl::prev();
+            iterator_impl::clear_value();
+        }
+
+        iterator operator-- (int) {
+            iterator ret(*this);
+            --(*this);
+            return ret;
+        }
+
+        reference_type operator* () const {
+            return iterator_impl::get_value();
+        }
+
+        pointer_type operator-> () const {
+            return &iterator_impl::get_value();
+        }
+
+        friend bool operator== (const iterator& lhs, const iterator& rhs) {
+            return &lhs.top_nodes == &rhs.top_nodes && lhs.path == rhs.path;
+        }
+
+        friend bool operator!= (const iterator& lhs, const iterator& rhs) {
+            return !(lhs == rhs);
+        }
+
+    private:
+        iterator(const nodes_type& tn, typename nodes_type::const_iterator it)
+            : iterator_impl{ tn, it } {
+
+            if (it != tn.end()) {
+                iterator_impl::lookup_end_at_left();
+            }
+        }
+    };
+    using const_iterator = iterator;
 
 public:
     void insert(string_view_type value) {
@@ -130,6 +228,18 @@ public:
 
         insert(nodes[value[0]], value);
     }
+
+    const_iterator begin() const { 
+        const_iterator ret{ nodes, nodes.begin() };
+        if (!nodes.empty()) {
+            ret.lookup_end_at_left();
+        }
+        return ret;
+    }
+    const_iterator cbegin() const { return begin(); }
+
+    const_iterator end() const { return const_iterator{ nodes, nodes.end() }; }
+    const_iterator cend() const { return end(); }
 
 private:
     void insert(node_type& n, string_view_type value) {
