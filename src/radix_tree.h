@@ -11,6 +11,23 @@
 
 namespace griha {
 
+namespace {
+
+template <typename ToCharT, typename FromCharT>
+std::basic_string<ToCharT> convert(std::basic_string_view<FromCharT> from);
+
+template<>
+std::wstring convert(std::string_view from) {
+    std::mbstate_t state;
+    const char* from_data = from.data();
+    std::size_t len = std::mbsrtowcs(nullptr, &from_data, 0, &state);
+    std::wstring ret(len, 0);
+    std::mbsrtowcs(ret.data(), &from_data, ret.size() + 1, &state);
+    return ret;
+}
+
+} // unnamed namespace
+
 template <typename CharT>
 class radix_tree {
 
@@ -29,7 +46,7 @@ private:
 
     struct iterator_impl {
 
-        using value_type = std::pair<const std::string, const std::string>;
+        using value_type = std::pair<const string_type, const string_type>;
 
         const nodes_type& top_nodes;
         std::forward_list<typename nodes_type::const_iterator> path;
@@ -140,19 +157,16 @@ private:
             if (path.front() == top_nodes.end()) {
                 throw std::runtime_error("invalid iterator");
             }
-            
-            if (!value) {
-                std::string prefix;
-                for (auto it = path.begin(); it != path.end(); ++it) {
-                    if (!it->end_flag) {
-                        prefix += it->label;
-                        continue;
-                    }
 
-                    assert(!it->label.empty());
-                    value = std::make_pair(prefix + it->label, prefix + it->label[0]);
-                    break;
+            if (!value) {
+                string_type suffix = path.front()->second.label, word;
+                assert(!suffix.empty());
+                for (auto it = std::next(path.begin());
+                     it != path.end();
+                     ++it) {
+                    word = (*it)->second.label + word;
                 }
+                value.emplace(word + suffix, word + suffix[0]);
             }
             return value.value();
         }
@@ -164,16 +178,17 @@ public:
         friend class radix_tree;
 
     public:
-        using iterator_category = std::bidirectional_iterator_tag;
         using difference_type = ptrdiff_t;
         using typename iterator_impl::value_type;
-        using reference_type = const value_type&;
-        using pointer_type = const value_type*;
+        using reference = const value_type&;
+        using pointer = const value_type*;
+        using iterator_category = std::bidirectional_iterator_tag;
 
     public:
         iterator& operator++ () {
             iterator_impl::next();
             iterator_impl::clear_value();
+            return *this;
         }
 
         iterator operator++ (int) {
@@ -185,6 +200,7 @@ public:
         iterator& operator-- () {
             iterator_impl::prev();
             iterator_impl::clear_value();
+            return *this;
         }
 
         iterator operator-- (int) {
@@ -193,11 +209,11 @@ public:
             return ret;
         }
 
-        reference_type operator* () const {
+        reference operator* () const {
             return iterator_impl::get_value();
         }
 
-        pointer_type operator-> () const {
+        pointer operator-> () const {
             return &iterator_impl::get_value();
         }
 
@@ -211,22 +227,25 @@ public:
 
     private:
         iterator(const nodes_type& tn, typename nodes_type::const_iterator it)
-            : iterator_impl{ tn, it } {
-
-            if (it != tn.end()) {
-                iterator_impl::lookup_end_at_left();
-            }
-        }
+            : iterator_impl{ tn, it } {}
     };
     using const_iterator = iterator;
 
 public:
     void insert(string_view_type value) {
-        if (value.empty()) {
-            return;
+        if (!value.empty()) {
+            insert(nodes[value[0]], value);
         }
+    }
 
-        insert(nodes[value[0]], value);
+    template <typename CharU>
+    void insert(std::basic_string_view<CharU> value) {
+        insert(convert<CharT>(value));
+    }
+
+    template <typename CharU, size_t N>
+    void insert(CharU (&value)[N]) {
+        insert(std::basic_string_view<CharU>(value, N));
     }
 
     const_iterator begin() const { 
@@ -243,7 +262,6 @@ public:
 
 private:
     void insert(node_type& n, string_view_type value) {
-
         if (n.label.empty()) {
             // node 'n' is a place for store 'value' - empty leaf
             n.label = value;
@@ -258,7 +276,7 @@ private:
 
         if (it_n != n.label.end() ) {
             // get match prefix and create new node for replacing with node 'n'
-            node_type new_n = { string_type{ n.label.begin(), it_n }, false };
+            node_type new_n = { string_type{ n.label.begin(), it_n }, false, {} };
             n.label = string_type{ it_n, n.label.end() };
             new_n.childs.emplace(n.label[0], std::move(n));
             n = std::move(new_n);
