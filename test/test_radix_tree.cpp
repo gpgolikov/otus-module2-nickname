@@ -10,7 +10,7 @@
 
 using namespace std;
 using namespace griha;
-using namespace Catch::Matchers;
+// using namespace Catch::Matchers;
 
 TEST_CASE("insert", "[radix_tree]") {
     using radix_tree_type = radix_tree<char>;

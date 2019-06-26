@@ -3,6 +3,7 @@
 #include <catch2/catch.hpp>
 
 #include <sstream>
+#include <string>
 
 template<typename T>
 class equals : public Catch::MatcherBase<T> {
@@ -33,9 +34,20 @@ inline auto Equals(const char* str) {
 
 namespace std {
 
-template<typename Ch, typename T1, typename T2>
-basic_ostream<Ch, char_traits<Ch>>&
-operator<<(basic_ostream<Ch, char_traits<Ch>>& os, const std::pair<T1, T2>& p) {
+ostream&
+operator<<(ostream& os, const wstring& value) {
+    mbstate_t state;
+    const wchar_t* value_data = value.data();
+    size_t len = wcsrtombs(nullptr, &value_data, 0, &state);
+    string mbvalue(len, 0);
+    wcsrtombs(mbvalue.data(), &value_data, mbvalue.size() + 1, &state);
+
+    return os << mbvalue;
+}
+
+template<typename T1, typename T2>
+ostream&
+operator<<(ostream& os, const pair<T1, T2>& p) {
     return os << '{' << get<0>(p) << ';' << get<1>(p) << '}';
 }
 

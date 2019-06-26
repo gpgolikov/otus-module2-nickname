@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <utility>
 #include <optional>
+#include <type_traits>
 
 namespace griha {
 
@@ -245,7 +246,7 @@ public:
 
     template <typename CharU, size_t N>
     void insert(CharU (&value)[N]) {
-        insert(std::basic_string_view<CharU>(value, N));
+        insert(std::basic_string_view<std::decay_t<CharU>>(value, N));
     }
 
     const_iterator begin() const { 
