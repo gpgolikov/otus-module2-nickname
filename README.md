@@ -1,4 +1,4 @@
-# otus-module2-matrix
+# otus-module2-nickname
 
 OTUS modile 2 homework - _nickname_
 
