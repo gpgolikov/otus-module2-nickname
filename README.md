@@ -1,6 +1,6 @@
 # otus-module2-matrix
 
-OTUS modile 2 homework - _matrix_
+OTUS modile 2 homework - _nickname_
 
 ## installation
 ```
@@ -8,7 +8,7 @@ $ curl -sSL "https://bintray.com/user/downloadSubjectPublicKey?username=bintray"
 $ echo "deb http://dl.bintray.com/gpgolikov/otus-cpp xenial main" | tee -a /etc/apt/sources.list.d/otus.list
 
 $ apt update
-$ apt install matrix
+$ apt install nickname
 ```
 
 ## installation of libc++1-7
@@ -20,3 +20,8 @@ $ apt update
 $ apt install libc++1-7 libc++abi-7
 
 ```
+
+## UTF-8
+_nickname_ tool uses wide char string for internal string storage.
+For achievement of success conversion of string _nickname_ uses `mbsrtowcs` function
+and current use locale.
