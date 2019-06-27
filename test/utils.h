@@ -4,6 +4,7 @@
 
 #include <sstream>
 #include <string>
+#include <locale>
 
 template<typename T>
 class equals : public Catch::MatcherBase<T> {
@@ -36,13 +37,9 @@ namespace std {
 
 ostream&
 operator<<(ostream& os, const wstring& value) {
-    mbstate_t state;
-    const wchar_t* value_data = value.data();
-    size_t len = wcsrtombs(nullptr, &value_data, 0, &state);
-    string mbvalue(len, 0);
-    wcsrtombs(mbvalue.data(), &value_data, mbvalue.size() + 1, &state);
-
-    return os << mbvalue;
+    string str(value.size() * 5, 0);
+    str.resize(wcstombs(str.data(), value.data(), str.size()));
+    return os << str;
 }
 
 template<typename T1, typename T2>

@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
+#include <locale>
 
 #include <radix_tree.h>
 
@@ -10,7 +11,7 @@
 
 using namespace std;
 using namespace griha;
-// using namespace Catch::Matchers;
+using namespace Catch::Matchers;
 
 TEST_CASE("insert", "[radix_tree]") {
     using radix_tree_type = radix_tree<char>;
@@ -98,6 +99,8 @@ TEST_CASE("insert", "[radix_tree]") {
 }
 
 TEST_CASE("insert utf-8", "[radix_tree]") {
+    setlocale(LC_ALL, "");
+
     using radix_tree_type = radix_tree<wchar_t>;
     radix_tree_type rtree;
     using nicknames_type = vector<radix_tree_type::iterator::value_type>;

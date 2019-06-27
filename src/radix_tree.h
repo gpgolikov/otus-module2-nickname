@@ -19,11 +19,9 @@ std::basic_string<ToCharT> convert(std::basic_string_view<FromCharT> from);
 
 template<>
 std::wstring convert(std::string_view from) {
-    std::mbstate_t state;
-    const char* from_data = from.data();
-    std::size_t len = std::mbsrtowcs(nullptr, &from_data, 0, &state);
-    std::wstring ret(len, 0);
-    std::mbsrtowcs(ret.data(), &from_data, ret.size() + 1, &state);
+    std::wstring ret(from.size(), 0);
+    size_t l = std::mbstowcs(ret.data(), from.data(), ret.size());
+    ret.resize(l);
     return ret;
 }
 
@@ -241,12 +239,13 @@ public:
 
     template <typename CharU>
     void insert(std::basic_string_view<CharU> value) {
-        insert(convert<CharT>(value));
+        const auto v = convert<CharT>(value);
+        insert(v);
     }
 
     template <typename CharU, size_t N>
     void insert(CharU (&value)[N]) {
-        insert(std::basic_string_view<std::decay_t<CharU>>(value, N));
+        insert(std::basic_string_view<std::decay_t<CharU>>(value, N - 1));
     }
 
     const_iterator begin() const { 
