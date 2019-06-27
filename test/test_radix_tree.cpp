@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iterator>
 #include <locale>
+#include <sstream>
 
 #include <radix_tree.h>
 
@@ -99,7 +100,7 @@ TEST_CASE("insert", "[radix_tree]") {
 }
 
 TEST_CASE("insert utf-8", "[radix_tree]") {
-    setlocale(LC_ALL, "");
+    setlocale(LC_ALL, "ru_RU.UTF-8");
 
     using radix_tree_type = radix_tree<wchar_t>;
     radix_tree_type rtree;
@@ -107,18 +108,18 @@ TEST_CASE("insert utf-8", "[radix_tree]") {
     nicknames_type nicknames;
 
     SECTION("insert utf-8") {
-        rtree.insert("алек");
-        rtree.insert("алексей");
-        rtree.insert("алеша");
-        rtree.insert("алекс");
-        rtree.insert("максим");
-        rtree.insert("майк");
-        rtree.insert("антон");
-        rtree.insert("анна");
-        rtree.insert("дмитрий");
-        rtree.insert("захар");
-        rtree.insert("заратустра");
-        rtree.insert("фридрих");
+        rtree.insert(u8"алек");
+        rtree.insert(u8"алексей");
+        rtree.insert(u8"алеша");
+        rtree.insert(u8"алекс");
+        rtree.insert(u8"максим");
+        rtree.insert(u8"майк");
+        rtree.insert(u8"антон");
+        rtree.insert(u8"анна");
+        rtree.insert(u8"дмитрий");
+        rtree.insert(u8"захар");
+        rtree.insert(u8"заратустра");
+        rtree.insert(u8"фридрих");
         copy(rtree.begin(), rtree.end(), back_inserter(nicknames));
         REQUIRE_THAT(nicknames, Equals(nicknames_type {
             { L"алек", L"алек" },
@@ -130,8 +131,8 @@ TEST_CASE("insert utf-8", "[radix_tree]") {
             { L"дмитрий", L"д" },
             { L"заратустра", L"зар" },
             { L"захар", L"зах" },
-            { L"максим", L"мак" },
             { L"майк", L"май" },
+            { L"максим", L"мак" },
             { L"фридрих", L"ф" }
         }));
     }

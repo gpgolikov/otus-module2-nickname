@@ -19,7 +19,7 @@ public:
 
     virtual std::string describe() const override {
         std::ostringstream os;
-        os << "equals \"" << value_ << '"';
+        os << "\nequals: \n\"" << value_ << '"';
         return os.str();
     }
 };
@@ -37,8 +37,11 @@ namespace std {
 
 ostream&
 operator<<(ostream& os, const wstring& value) {
-    string str(value.size() * 5, 0);
-    str.resize(wcstombs(str.data(), value.data(), str.size()));
+    mbstate_t state {};
+    auto value_data = value.data();
+    size_t len = wcsrtombs(nullptr, &value_data, 0, &state);
+    string str(len, 0);
+    wcsrtombs(str.data(), &value_data, str.size(), &state);
     return os << str;
 }
 

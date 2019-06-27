@@ -9,6 +9,7 @@
 #include <utility>
 #include <optional>
 #include <type_traits>
+#include <iostream>
 
 namespace griha {
 
@@ -19,9 +20,11 @@ std::basic_string<ToCharT> convert(std::basic_string_view<FromCharT> from);
 
 template<>
 std::wstring convert(std::string_view from) {
-    std::wstring ret(from.size(), 0);
-    size_t l = std::mbstowcs(ret.data(), from.data(), ret.size());
-    ret.resize(l);
+    std::mbstate_t state {};
+    auto from_data = from.data();
+    std::size_t l = std::mbsrtowcs(nullptr, &from_data, 0, &state);
+    std::wstring ret(l, 0);
+    std::mbsrtowcs(ret.data(), &from_data, ret.size(), &state);
     return ret;
 }
 
@@ -290,6 +293,41 @@ private:
             // mark it as end of word
             n.end_flag = true;
         }
+    }
+
+    static std::basic_ostream<CharT>&
+    print(std::basic_ostream<CharT>& os, const node_type& node, string_view_type prefix) {
+        using traits = std::char_traits<CharT>;
+        os << prefix.substr(0, prefix.size() - 2) 
+           << traits::to_char_type('+') << traits::to_char_type(' ') << node.label;
+        if (node.end_flag) {
+            os << traits::to_char_type('$');
+        }
+        os << traits::to_char_type('\n');
+        if (node.childs.empty()) {
+            return os;
+        }
+        string_type prefix_child { prefix.data(), prefix.size() };
+        prefix_child += traits::to_char_type(node.childs.size() == 1 ? ' ' : '|');
+        prefix_child += traits::to_char_type(' ');
+        return radix_tree::print(os, node.childs, std::move(prefix_child));
+    }
+    
+    static std::basic_ostream<CharT>&
+    print(std::basic_ostream<CharT>& os, const nodes_type& nodes, string_type prefix) {
+        for (auto& node : nodes) {
+            radix_tree::print(os, node.second, prefix);
+        }
+        return os;
+    }
+
+    friend std::basic_ostream<CharT>& 
+    operator<< (std::basic_ostream<CharT>& os, const radix_tree& rtree) {
+        using traits = std::char_traits<CharT>;
+        string_type prefix;
+        prefix += traits::to_char_type('|');
+        prefix += traits::to_char_type(' ');
+        return radix_tree::print(os, rtree.nodes, std::move(prefix));
     }
 
 private:

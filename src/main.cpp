@@ -1,34 +1,27 @@
 #include <iostream>
-#include <tuple>
+#include <clocale>
+#include <string>
 
-#include "matrix.h"
+#include "radix_tree.h"
 
 using namespace std;
 using namespace griha;
 
 int main() {
+    wcout.imbue(std::locale(setlocale(LC_ALL, "")));
 
-    Matrix<int, 0> matrix;
-    for (size_t i = 0u; i <= 9u; ++i) {
-        matrix[i][i] = i;
-        matrix[i][9u - i] = 9u - i;
+    radix_tree<wchar_t> nicknames;
+    string line;
+    while (getline(cin, line)) {
+        nicknames.insert(static_cast<string_view>(line));
     }
 
-    for (size_t i = 1u; i <= 8u; ++i) {
-        for (size_t j = 1u; j < 8u; ++j) {
-            cout << matrix[i][j] << ' ';
-        }
-        cout << matrix[i][8u];
-        endl(cout);
+    for (auto& nickname : nicknames) {
+        wcout << nickname.first << L' ' << nickname.second << endl;
     }
-    cout << matrix.size() << endl;
 
-    for (auto el : matrix) {
-        size_t x, y;
-        int v;
-        tie(x, y, v) = el;
-        cout << "matrix[" << x << "][" << y << "]: " << v << endl;
-    }
+    wcout << endl;
+    wcout << nicknames;
 
     return 0;
 }
