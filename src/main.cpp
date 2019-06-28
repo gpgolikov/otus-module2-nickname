@@ -8,7 +8,7 @@ using namespace std;
 using namespace griha;
 
 int main() {
-    wcout.imbue(std::locale(setlocale(LC_ALL, "")));
+    wcout.imbue(locale(setlocale(LC_ALL, "")));
 
     radix_tree<wchar_t> nicknames;
     string line;

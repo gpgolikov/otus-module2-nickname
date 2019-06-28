@@ -295,7 +295,8 @@ private:
         }
     }
 
-    static std::basic_ostream<CharT>&
+    static
+    std::basic_ostream<CharT>&
     print(std::basic_ostream<CharT>& os, const node_type& node, string_view_type prefix) {
         using traits = std::char_traits<CharT>;
         os << prefix.substr(0, prefix.size() - 2) 
@@ -313,7 +314,8 @@ private:
         return radix_tree::print(os, node.childs, std::move(prefix_child));
     }
     
-    static std::basic_ostream<CharT>&
+    static
+    std::basic_ostream<CharT>&
     print(std::basic_ostream<CharT>& os, const nodes_type& nodes, string_type prefix) {
         for (auto& node : nodes) {
             radix_tree::print(os, node.second, prefix);
@@ -321,7 +323,8 @@ private:
         return os;
     }
 
-    friend std::basic_ostream<CharT>& 
+    friend
+    std::basic_ostream<CharT>& 
     operator<< (std::basic_ostream<CharT>& os, const radix_tree& rtree) {
         using traits = std::char_traits<CharT>;
         string_type prefix;
