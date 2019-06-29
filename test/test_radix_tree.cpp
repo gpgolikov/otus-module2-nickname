@@ -100,7 +100,11 @@ TEST_CASE("insert", "[radix_tree]") {
 }
 
 TEST_CASE("insert utf-8", "[radix_tree]") {
-    setlocale(LC_ALL, "ru_RU.UTF-8");
+    if (setlocale(LC_ALL, "ru_RU.UTF-8") == nullptr &&
+        setlocale(LC_ALL, "en_US.UTF-8") == nullptr &&
+        setlocale(LC_ALL, "C.UTF-8") == nullptr) {
+        setlocale(LC_ALL, "");
+    }
 
     using radix_tree_type = radix_tree<wchar_t>;
     radix_tree_type rtree;
@@ -136,4 +140,28 @@ TEST_CASE("insert utf-8", "[radix_tree]") {
             { L"фридрих", L"ф" }
         }));
     }
+}
+
+TEST_CASE("print", "[radix_tree]") {
+    radix_tree<char> rtree;
+    rtree.insert("alek");
+    rtree.insert("aleksey");
+    rtree.insert("alesha");
+    rtree.insert("aleks");
+    rtree.insert("maksim");
+    rtree.insert("mike");
+
+    ostringstream os;
+    os << rtree;
+
+    REQUIRE_THAT(os.str(), Equals(
+        "+ ale\n"
+        "| + k$\n"
+        "| | + s$\n"
+        "| |   + ey$\n"
+        "| + sha$\n"
+        "+ m\n"
+        "  + aksim$\n"
+        "  + ike$\n"
+    ));
 }

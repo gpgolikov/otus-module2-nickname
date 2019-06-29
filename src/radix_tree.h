@@ -297,28 +297,34 @@ private:
 
     static
     std::basic_ostream<CharT>&
-    print(std::basic_ostream<CharT>& os, const node_type& node, string_view_type prefix) {
-        using traits = std::char_traits<CharT>;
-        os << prefix.substr(0, prefix.size() - 2) 
-           << traits::to_char_type('+') << traits::to_char_type(' ') << node.label;
+    print(std::basic_ostream<CharT>& os,
+          const node_type& node, bool last_node,
+          string_view_type prefix) {
+
+        os << prefix 
+           << os.widen('+') << os.widen(' ') 
+           << node.label;
         if (node.end_flag) {
-            os << traits::to_char_type('$');
+            os << os.widen('$');
         }
-        os << traits::to_char_type('\n');
-        if (node.childs.empty()) {
-            return os;
-        }
+        os << os.widen('\n');
+
         string_type prefix_child { prefix.data(), prefix.size() };
-        prefix_child += traits::to_char_type(node.childs.size() == 1 ? ' ' : '|');
-        prefix_child += traits::to_char_type(' ');
+        prefix_child += os.widen(last_node ? ' ' : '|');
+        prefix_child += os.widen(' ');
         return radix_tree::print(os, node.childs, std::move(prefix_child));
     }
     
     static
     std::basic_ostream<CharT>&
-    print(std::basic_ostream<CharT>& os, const nodes_type& nodes, string_type prefix) {
-        for (auto& node : nodes) {
-            radix_tree::print(os, node.second, prefix);
+    print(std::basic_ostream<CharT>& os, const nodes_type& nodes, string_type prefix = string_type{}) {
+        if (nodes.empty()) {
+            return os;
+        }
+
+        const auto it_pre_end = std::prev(nodes.end());
+        for (auto it = nodes.begin(); it != nodes.end(); ++it) {
+            radix_tree::print(os, it->second, it == it_pre_end, prefix);
         }
         return os;
     }
@@ -326,11 +332,7 @@ private:
     friend
     std::basic_ostream<CharT>& 
     operator<< (std::basic_ostream<CharT>& os, const radix_tree& rtree) {
-        using traits = std::char_traits<CharT>;
-        string_type prefix;
-        prefix += traits::to_char_type('|');
-        prefix += traits::to_char_type(' ');
-        return radix_tree::print(os, rtree.nodes, std::move(prefix));
+        return radix_tree::print(os, rtree.nodes);
     }
 
 private:
